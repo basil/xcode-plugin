@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.text.ParseException;
 import hudson.FilePath;
+import jenkins.util.SetContextClassLoader;
 
 import com.dd.plist.NSDictionary; 
 import com.dd.plist.NSArray;
@@ -40,16 +41,11 @@ public class XcodeTestSummariesParser {
 
     private void writeTestReport(TestSuite currentTestSuite) throws IOException, InterruptedException,
             JAXBException {
+        JAXBContext jaxbContext;
+        try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+            jaxbContext = JAXBContext.newInstance(TestSuite.class);
+        }
         try (OutputStream testReportOutputStream = outputForSuite(currentTestSuite)) {
-            JAXBContext jaxbContext;
-            Thread t = Thread.currentThread();
-            ClassLoader orig = t.getContextClassLoader();
-            t.setContextClassLoader(XcodeTestSummariesParser.class.getClassLoader());
-            try {
-                jaxbContext = JAXBContext.newInstance(TestSuite.class);
-            } finally {
-                t.setContextClassLoader(orig);
-            }
             Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.marshal(currentTestSuite, testReportOutputStream);
         }

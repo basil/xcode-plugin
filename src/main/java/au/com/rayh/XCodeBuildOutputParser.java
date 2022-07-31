@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import jenkins.util.SetContextClassLoader;
 
 import au.com.rayh.report.TestCase;
 import au.com.rayh.report.TestError;
@@ -176,16 +177,11 @@ public class XCodeBuildOutputParser {
 
     private void writeTestReport() throws IOException, InterruptedException,
             JAXBException {
+        JAXBContext jaxbContext;
+        try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+            jaxbContext = JAXBContext.newInstance(TestSuite.class);
+        }
         try (OutputStream testReportOutputStream = outputForSuite()) {
-            JAXBContext jaxbContext;
-            Thread t = Thread.currentThread();
-            ClassLoader orig = t.getContextClassLoader();
-            t.setContextClassLoader(XCodeBuildOutputParser.class.getClassLoader());
-            try {
-                jaxbContext = JAXBContext.newInstance(TestSuite.class);
-            } finally {
-                t.setContextClassLoader(orig);
-            }
             Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.marshal(currentTestSuite, testReportOutputStream);
         }
